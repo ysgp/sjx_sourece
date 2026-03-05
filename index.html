@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vSTARLUX Training Portal</title>
+    <style>
+        :root {
+            --starlux-gold: #917b50;
+            --starlux-gold-light: #b5a382;
+            --starlux-grey: #3c3c3c;
+            --starlux-light: #f4f1ee;
+            --starlux-dark: #1a1a1a;
+        }
+
+        body {
+            font-family: 'Segoe UI', "Microsoft JhengHei", sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #3c3c3c 100%);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            text-align: center;
+            width: 90%;
+            max-width: 800px;
+        }
+
+        .logo {
+            width: 300px;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+        }
+
+        h1 {
+            font-size: 24px;
+            letter-spacing: 4px;
+            margin-bottom: 40px;
+            font-weight: 300;
+            color: var(--starlux-gold-light);
+            text-transform: uppercase;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .nav-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(145, 123, 80, 0.3);
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-card:hover {
+            transform: translateY(-10px);
+            background: rgba(145, 123, 80, 0.15);
+            border-color: var(--starlux-gold);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+        }
+
+        .icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .nav-card h2 {
+            margin: 10px 0;
+            font-size: 18px;
+            letter-spacing: 1px;
+        }
+
+        .nav-card p {
+            font-size: 13px;
+            color: #aaa;
+            margin: 0;
+        }
+
+        .footer {
+            margin-top: 50px;
+            font-size: 11px;
+            color: #666;
+            letter-spacing: 1px;
+        }
+
+        /* 裝飾性線條 */
+        .divider {
+            width: 50px;
+            height: 2px;
+            background: var(--starlux-gold);
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 如果您有 logo.png，它會顯示在這裡 -->
+        <img src="logo.png" alt="vSTARLUX Logo" class="logo" onerror="this.style.display='none'">
+        
+        <h1>Training Management System</h1>
+        
+        <div class="menu-grid">
+            <!-- 導向 ATC 考核表 -->
+            <a href="ATC_Rating.html" class="nav-card">
+                <div class="icon">📡</div>
+                <h2>ATC RATING</h2>
+                <div class="divider"></div>
+                <p>飛航管制員訓練考核系統</p>
+            </a>
+
+            <!-- 導向 A350 考核表 -->
+            <a href="a350_type_rating.html" class="nav-card">
+                <div class="icon">✈️</div>
+                <h2>A350 TYPE RATING</h2>
+                <div class="divider"></div>
+                <p>A350 機型轉換與技術考核</p>
+            </a>
+        </div>
+
+        <div class="footer">
+            VIRTUAL STARLUX AIRLINES &copy; 2024<br>
+            FLIGHT OPERATIONS & TRAINING DIVISION
+        </div>
+    </div>
+
+</body>
+</html>

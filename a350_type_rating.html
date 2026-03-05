@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vSTARLUX A350 Type Rating System v2</title>
+
+    <style>
+        :root {
+            --starlux-gold: #917b50;
+            --starlux-gold-light: #b5a382;
+            --starlux-gold-pale: #f4f0e8;
+            --starlux-grey: #3c3c3c;
+            --starlux-light: #f4f1ee;
+            --starlux-dark: #1a1a1a;
+            --pass-green: #27ae60;
+            --warn-orange: #f39c12;
+            --fail-red: #d63031;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', "Microsoft JhengHei", sans-serif;
+            background: linear-gradient(135deg, #c8c8c8 0%, #d8d5d0 100%);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* ── Controls Bar ── */
+        .controls {
+            margin-bottom: 20px;
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            background: rgba(255,255,255,0.92);
+            padding: 10px 18px;
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            backdrop-filter: blur(8px);
+        }
+
+        .controls-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .controls-divider {
+            width: 1px;
+            height: 24px;
+            background: #ddd;
+        }
+
+        button {
+            padding: 8px 15px;
+            cursor: pointer;
+            border: none;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .btn-save   { background: var(--starlux-grey); color: white; }
+        .btn-pdf    { background: var(--starlux-gold);  color: white; }
+        .btn-export { background: #4a7c59; color: white; }
+        .btn-import { background: #2e6da4; color: white; }
+        .btn-reset  { background: #eee; color: #555; border: 1px solid #ddd; }
+        .btn-reset:hover { background: var(--fail-red); color: white; border-color: var(--fail-red); }
+
+        button:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
+        button:active { transform: translateY(0); }
+
+        /* ── Toast Notification ── */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #2d2d2d;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: bold;
+            z-index: 9999;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* ── Rating Sheet ── */
+        #rating-sheet {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            padding: 14mm 16mm;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.2);
+            position: relative;
+            color: var(--starlux-dark);
+        }
+
+        /* ── Header ── */
+        .header {
+            border-bottom: 3px solid var(--starlux-gold);
+            padding-bottom: 14px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .logo-fallback {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--starlux-gold);
+            letter-spacing: 3px;
+            margin-bottom: 8px;
+        }
+
+        .main-logo {
+            width: 220px;
+            height: auto;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: var(--starlux-grey);
+            font-size: 20px;
+            letter-spacing: 1.5px;
+            font-weight: 800;
+        }
+
+        .header-right {
+            text-align: right;
+            color: var(--starlux-gold);
+            font-size: 10.5px;
+            line-height: 1.6;
+        }
+
+        /* ── Student Info ── */
+        .student-info {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 0.8fr;
+            gap: 12px;
+            margin-bottom: 20px;
+            background: var(--starlux-light);
+            padding: 12px 15px;
+            border-radius: 4px;
+            border-left: 3px solid var(--starlux-gold);
+        }
+
+        .input-group label {
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--starlux-gold);
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            border: none;
+            border-bottom: 1.5px solid #ccc;
+            background: transparent;
+            padding: 4px 0;
+            font-size: 13.5px;
+            outline: none;
+            font-family: inherit;
+            color: var(--starlux-dark);
+            transition: border-color 0.2s;
+        }
+
+        input:focus, textarea:focus {
+            border-bottom-color: var(--starlux-gold);
+        }
+
+        /* ── Sections ── */
+        section { margin-bottom: 18px; }
+
+        .section-title {
+            background: var(--starlux-grey);
+            color: white;
+            padding: 7px 14px;
+            font-size: 12.5px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0;
+            border-radius: 2px 2px 0 0;
+        }
+
+        .section-subtitle {
+            font-size: 10px;
+            opacity: 0.75;
+            font-weight: normal;
+            margin-left: 8px;
+        }
+
+        .section-score-badge {
+            background: var(--starlux-gold);
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
+        /* ── Tables ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #e8e8e8;
+        }
+
+        th {
+            background: #f6f4f0;
+            color: var(--starlux-gold);
+            font-size: 11px;
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 2px solid #e8e0d0;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 12.5px;
+            vertical-align: middle;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fdfcfb; }
+
+        .desc-text {
+            font-size: 10.5px;
+            color: #888;
+            display: block;
+            margin-top: 2px;
+        }
+
+        /* ── Score Input ── */
+        .score-cell {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .score-input {
+            width: 52px;
+            padding: 5px 6px;
+            border: 1.5px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            color: var(--starlux-dark);
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .score-input:focus {
+            border-color: var(--starlux-gold);
+            outline: none;
+            background: var(--starlux-gold-pale);
+        }
+
+        .score-max {
+            font-size: 11.5px;
+            color: #999;
+        }
+
+        .val-input {
+            width: 58px;
+            text-align: center;
+            border-bottom: 1.5px solid #ccc !important;
+            font-size: 12.5px;
+        }
+
+        /* ── Part Totals ── */
+        .part-total-row td {
+            background: var(--starlux-gold-pale);
+            font-weight: bold;
+            font-size: 12px;
+            color: var(--starlux-grey);
+            border-top: 1.5px solid #d4c9a8;
+            padding: 7px 10px;
+        }
+
+        .part-score-display {
+            font-weight: 800;
+            font-size: 15px;
+            color: var(--starlux-gold);
+        }
+
+        /* ── Remarks ── */
+        .remarks-section label {
+            font-weight: bold;
+            color: var(--starlux-gold);
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .remark-area {
+            width: 100%;
+            height: 72px;
+            border: 1.5px solid #e0e0e0;
+            background: #fafafa;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: 12.5px;
+            resize: vertical;
+            border-radius: 4px;
+            color: var(--starlux-dark);
+            transition: border-color 0.2s;
+        }
+
+        /* ── Footer Grid ── */
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .result-box {
+            border: 2px solid var(--starlux-gold);
+            padding: 14px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .result-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--starlux-gold);
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .result-options {
+            display: flex;
+            justify-content: space-around;
+            gap: 6px;
+        }
+
+        .result-option {
+            flex: 1;
+            text-align: center;
+        }
+
+        .result-option input[type="radio"] {
+            display: none;
+        }
+
+        .result-option label {
+            display: block;
+            padding: 7px 4px;
+            border-radius: 6px;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            font-size: 11.5px;
+            font-weight: bold;
+            color: #888;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        #res_fail:checked   + label { background: #ffeaea; border-color: var(--fail-red);    color: var(--fail-red); }
+        #res_partial:checked + label { background: #fff8e1; border-color: var(--warn-orange); color: var(--warn-orange); }
+        #res_passed:checked  + label { background: #eafbf0; border-color: var(--pass-green);  color: var(--pass-green); }
+
+        .result-option label:hover { border-color: var(--starlux-gold-light); }
+
+        .signature-wrap {
+            margin-top: 4px;
+        }
+
+        .signature-label {
+            font-size: 9.5px;
+            color: var(--starlux-gold);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .signature-line {
+            margin-top: 6px;
+            border-bottom: 1.5px solid #333;
+            width: 100%;
+            height: 36px;
+            position: relative;
+        }
+
+        .signature-line input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: none !important;
+            border-bottom: none !important;
+            background: transparent;
+            font-family: 'Brush Script MT', cursive;
+            font-size: 24px;
+            color: #1a1a1a;
+            padding: 0 4px;
+        }
+
+        /* ── Total Score Box ── */
+        .total-score-box {
+            text-align: center;
+            background: var(--starlux-grey);
+            color: white;
+            padding: 14px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .total-score-label {
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+
+        .total-score-display {
+            font-size: 56px;
+            font-weight: 900;
+            line-height: 1;
+            margin: 4px 0;
+            transition: color 0.4s;
+        }
+
+        .total-score-out-of {
+            font-size: 11px;
+            opacity: 0.6;
+        }
+
+        .total-score-pass-req {
+            font-size: 10.5px;
+            font-weight: bold;
+            opacity: 0.85;
+            margin-top: 4px;
+        }
+
+        /* Part breakdown inside total box */
+        .score-breakdown {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 9.5px;
+            opacity: 0.7;
+        }
+
+        .breakdown-item {
+            text-align: center;
+        }
+
+        .breakdown-val {
+            font-size: 13px;
+            font-weight: bold;
+            opacity: 1;
+        }
+
+        /* ── Part III Radio Selection ── */
+        .p3-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .p3-option input[type="radio"] {
+            display: none;
+        }
+
+        .p3-option label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 5px 10px 5px 6px;
+            border-radius: 20px;
+            border: 1.5px solid #ddd;
+            font-size: 12px;
+            font-weight: bold;
+            color: #888;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .p3-option label:hover {
+            border-color: var(--starlux-gold-light);
+            color: var(--starlux-gold);
+        }
+
+        .p3-check {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .p3-option input[type="radio"]:checked + label {
+            border-color: var(--starlux-gold);
+            color: var(--starlux-grey);
+            background: var(--starlux-gold-pale);
+        }
+
+        .p3-option input[type="radio"]:checked + label .p3-check {
+            background: var(--starlux-gold);
+            border-color: var(--starlux-gold);
+            color: white;
+        }
+
+        .p3-score-display {
+            font-size: 11px;
+            color: #999;
+            margin-left: 4px;
+        }
+
+        .p3-option input[type="radio"]:checked + label .p3-score-display {
+            color: var(--starlux-gold);
+            font-weight: bold;
+        }
+        .visually-hidden {
+            position: absolute;
+            width: 1px; height: 1px;
+            padding: 0; margin: -1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            border: 0;
+        }
+
+        /* ── Print / PDF ── */
+        @media print {
+            .controls, #toast { display: none !important; }
+            body { background: white; padding: 0; margin: 0; }
+            #rating-sheet {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                min-height: auto;
+                padding: 10mm 12mm;
+            }
+            /* Ensure radio custom labels print correctly */
+            .result-option label { border: 2px solid #ddd !important; }
+            #res_fail:checked   + label { background: #ffeaea !important; border-color: #d63031 !important; color: #d63031 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            #res_partial:checked + label { background: #fff8e1 !important; border-color: #f39c12 !important; color: #f39c12 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            #res_passed:checked  + label { background: #eafbf0 !important; border-color: #27ae60 !important; color: #27ae60 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            /* P3 radio print */
+            .p3-option input[type="radio"] { display: inline-block !important; }
+            .p3-check { display: inline !important; }
+            /* Colors */
+            .section-title, .part-total-row td, .total-score-box {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        @media (max-width: 230mm) {
+            #rating-sheet { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div class="controls">
+    <div class="controls-group">
+        <button class="btn-save" onclick="saveData()">💾 儲存草稿</button>
+    </div>
+    <div class="controls-divider"></div>
+    <div class="controls-group">
+        <button class="btn-export" onclick="exportDataJSON()">📤 匯出 JSON</button>
+        <button class="btn-import" onclick="importDataJSON()">📥 匯入 JSON</button>
+    </div>
+    <div class="controls-divider"></div>
+    <div class="controls-group">
+        <button class="btn-pdf" onclick="exportPDF()">🖨️ 列印 / PDF</button>
+        <button class="btn-reset" onclick="resetData()">🔄 重置</button>
+    </div>
+</div>
+
+<div id="rating-sheet">
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <img src="logo.png" alt="vSTARLUX Airlines Logo" class="main-logo"
+                 onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block';">
+            <div id="logo-fallback" class="logo-fallback" style="display:none;">✦ vSTARLUX</div>
+            <h1>A350 TYPE RATING CHECK</h1>
+        </div>
+        <div class="header-right">
+            FORM: OPS-A350-TR-V2<br>
+            FLIGHT OPERATIONS DIVISION<br>
+            VIRTUAL STARLUX AIRLINES
+        </div>
+    </div>
+
+    <!-- Student Info -->
+    <div class="student-info">
+        <div class="input-group">
+            <label for="pilot_name">Pilot Name / 駕駛員姓名</label>
+            <input type="text" id="pilot_name" placeholder="Full Name" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label for="callsign">Callsign / 呼號代碼</label>
+            <input type="text" id="callsign" placeholder="STARWALKER XXX" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label for="check_date">Date / 考核日期</label>
+            <input type="date" id="check_date">
+        </div>
+    </div>
+
+    <!-- PART I -->
+    <section>
+        <div class="section-title">
+            <span>PART I: IFR OPERATIONS 儀器操作 <span class="section-subtitle">— 40 pts</span></span>
+            <span class="section-score-badge">40%</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="35%">Task / 考核項目</th>
+                    <th width="42%">Criteria / 標準</th>
+                    <th width="23%">Score (Max)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><b>RCTP → RCKH</b></td>
+                    <td>
+                        <label for="p1_val_1">FPM:</label>
+                        <input type="text" id="p1_val_1" class="val-input" autocomplete="off" placeholder="-XXX">
+                        <span class="desc-text">Landing rate &lt; -270 FPM</span>
+                    </td>
+                    <td>
+                        <label class="visually-hidden" for="p1_score_1">RCTP→RCKH Score</label>
+                        <div class="score-cell">
+                            <input type="number" id="p1_score_1" class="score-input p-score" data-max="20" max="20" min="0" value="0" oninput="validate(this)">
+                            <span class="score-max">/ 20</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><b>RCKH → RCTP</b></td>
+                    <td>
+                        <label for="p1_val_2">G Load:</label>
+                        <input type="text" id="p1_val_2" class="val-input" autocomplete="off" placeholder="X.XX">
+                        <span class="desc-text">Landing G &lt; 1.2G</span>
+                    </td>
+                    <td>
+                        <label class="visually-hidden" for="p1_score_2">RCKH→RCTP Score</label>
+                        <div class="score-cell">
+                            <input type="number" id="p1_score_2" class="score-input p-score" data-max="20" max="20" min="0" value="0" oninput="validate(this)">
+                            <span class="score-max">/ 20</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="part-total-row">
+                    <td colspan="2">Part I Subtotal</td>
+                    <td>
+                        <span class="part-score-display" id="p1_total">0</span>
+                        <span class="score-max"> / 40</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- PART II -->
+    <section>
+        <div class="section-title">
+            <span>PART II: VISUAL CIRCUITS 起落航線 <span class="section-subtitle">— 40 pts</span></span>
+            <span class="section-score-badge">40%</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="25%">Task</th>
+                    <th width="52%">Touchdown Data (FPM / G)</th>
+                    <th width="23%">Score (Max)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><b>Circuit 1</b></td>
+                    <td>
+                        <label for="p2_fpm_1">FPM:</label> <input type="text" id="p2_fpm_1" class="val-input" autocomplete="off" placeholder="-XXX">
+                        &nbsp;<label for="p2_g_1">G:</label> <input type="text" id="p2_g_1" class="val-input" autocomplete="off" placeholder="X.XX">
+                    </td>
+                    <td>
+                        <label class="visually-hidden" for="p2_score_1">Circuit 1 Score</label>
+                        <div class="score-cell">
+                            <input type="number" id="p2_score_1" class="score-input p-score" data-max="8" max="8" min="0" value="0" oninput="validate(this)">
+                            <span class="score-max">/ 8</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><b>Circuit 2</b></td>
+                    <td>
+                        <label for="p2_fpm_2">FPM:</label> <input type="text" id="p2_fpm_2" class="val-input" autocomplete="off" placeholder="-XXX">
+                        &nbsp;<label for="p2_g_2">G:</label> <input type="text" id="p2_g_2" class="val-input" autocomplete="off" placeholder="X.XX">
+                    </td>
+                    <td>
+                        <label class="visually-hidden" for="p2_score_2">Circuit 2 Score</label>
+                        <div class="score-cell">
+                            <input type="number" id="p2_score_2" class="score-input p-score" data-max="8" max="8" min="0" value="0" oninput="validate(this)">
+                            <span class="score-max">/ 8</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><b>Go Around</b></td>
+                    <td><span class="desc-text">Missed Approach Procedure</span></td>
+                    <td>
+                        <label class="visually-hidden" for="p2_score_3">Go Around Score</label>
+                        <div class="score-cell">
+                            <input type="number" id="p2_score_3" class="score-input p-score" data-max="8" max="8" min="0" value="0" oninput="validate(this)">
+                            <span class="score-max">/ 8</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><b>Holding</b></td>
+                    <td><span class="desc-text">Entry & Pattern Maintenance</span></td>
+                    <td>
+                        <label class="visually-hidden" for="p2_score_4">Holding Score</label>
+                        <div class="score-cell">
+                            <input type="number" id="p2_score_4" class="score-input p-score" data-max="8" max="8" min="0" value="0" oninput="validate(this)">
+                            <span class="score-max">/ 8</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><b>Circuit 3</b></td>
+                    <td>
+                        <label for="p2_fpm_3">FPM:</label> <input type="text" id="p2_fpm_3" class="val-input" autocomplete="off" placeholder="-XXX">
+                        &nbsp;<label for="p2_g_3">G:</label> <input type="text" id="p2_g_3" class="val-input" autocomplete="off" placeholder="X.XX">
+                    </td>
+                    <td>
+                        <label class="visually-hidden" for="p2_score_5">Circuit 3 Score</label>
+                        <div class="score-cell">
+                            <input type="number" id="p2_score_5" class="score-input p-score" data-max="8" max="8" min="0" value="0" oninput="validate(this)">
+                            <span class="score-max">/ 8</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="part-total-row">
+                    <td colspan="2">Part II Subtotal</td>
+                    <td>
+                        <span class="part-score-display" id="p2_total">0</span>
+                        <span class="score-max"> / 40</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- PART III -->
+    <section>
+        <div class="section-title">
+            <span>PART III: EMERGENCY PROCEDURES 緊急程序 <span class="section-subtitle">— 20 pts · 三選一</span></span>
+            <span class="section-score-badge">20%</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="30%">Emergency Type</th>
+                    <th width="47%">Handling / 處置</th>
+                    <th width="23%">Score (Max)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="p3-option">
+                            <input type="radio" id="p3_sel_1" name="p3_scenario" value="eng_fire" onchange="onP3Change()">
+                            <label for="p3_sel_1">
+                                <span class="p3-check">✓</span>
+                                <b>ENG FIRE</b>
+                                <span class="p3-score-display">/ 20</span>
+                            </label>
+                        </div>
+                    </td>
+                    <td><span class="desc-text">Memory Items & ECAM Actions</span></td>
+                    <td>
+                        <div class="score-cell">
+                            <input type="number" id="p3_score_1" class="score-input p-score" data-max="20" max="20" min="0" value="0" oninput="validate(this)" disabled>
+                            <span class="score-max">/ 20</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="p3-option">
+                            <input type="radio" id="p3_sel_2" name="p3_scenario" value="bird_strike" onchange="onP3Change()">
+                            <label for="p3_sel_2">
+                                <span class="p3-check">✓</span>
+                                <b>BIRD STRIKE</b>
+                                <span class="p3-score-display">/ 20</span>
+                            </label>
+                        </div>
+                    </td>
+                    <td><span class="desc-text">Decision Making & Configuration</span></td>
+                    <td>
+                        <div class="score-cell">
+                            <input type="number" id="p3_score_2" class="score-input p-score" data-max="20" max="20" min="0" value="0" oninput="validate(this)" disabled>
+                            <span class="score-max">/ 20</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="p3-option">
+                            <input type="radio" id="p3_sel_3" name="p3_scenario" value="fuel_leak" onchange="onP3Change()">
+                            <label for="p3_sel_3">
+                                <span class="p3-check">✓</span>
+                                <b>FUEL LEAK</b>
+                                <span class="p3-score-display">/ 20</span>
+                            </label>
+                        </div>
+                    </td>
+                    <td><span class="desc-text">Identification & QRH Procedure</span></td>
+                    <td>
+                        <div class="score-cell">
+                            <input type="number" id="p3_score_3" class="score-input p-score" data-max="20" max="20" min="0" value="0" oninput="validate(this)" disabled>
+                            <span class="score-max">/ 20</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="part-total-row">
+                    <td colspan="2">Part III Subtotal</td>
+                    <td>
+                        <span class="part-score-display" id="p3_total">0</span>
+                        <span class="score-max"> / 20</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Remarks -->
+    <section class="remarks-section">
+        <label for="remarks">Examiner Remarks / 考官評語</label>
+        <textarea id="remarks" class="remark-area" placeholder="Notes on pilot performance, areas for improvement, commendations..."></textarea>
+    </section>
+
+    <!-- Footer -->
+    <div class="footer-grid">
+        <div class="result-box">
+            <div>
+                <div class="result-label">Overall Result / 最終結果</div>
+                <div class="result-options">
+                    <div class="result-option">
+                        <input type="radio" id="res_fail" name="result" value="fail">
+                        <label for="res_fail">❌ FAIL</label>
+                    </div>
+                    <div class="result-option">
+                        <input type="radio" id="res_partial" name="result" value="partial">
+                        <label for="res_partial">⚠️ PARTIAL</label>
+                    </div>
+                    <div class="result-option">
+                        <input type="radio" id="res_passed" name="result" value="passed">
+                        <label for="res_passed">✅ PASSED</label>
+                    </div>
+                </div>
+            </div>
+            <div class="signature-wrap">
+                <div class="signature-label">Check Pilot Signature / 考官簽名</div>
+                <div class="signature-line">
+                    <input type="text" id="instructor_sign" placeholder="Full Name" autocomplete="off">
+                </div>
+            </div>
+        </div>
+
+        <div class="total-score-box">
+            <div class="total-score-label">Final Rating Score</div>
+            <div class="total-score-display" id="total_display">0</div>
+            <div class="total-score-out-of">out of 100</div>
+            <div class="total-score-pass-req">PASSING REQUIREMENT: ≥ 80</div>
+            <div class="score-breakdown">
+                <div class="breakdown-item">
+                    <div class="breakdown-val" id="bd_p1">0</div>
+                    <div>Part I</div>
+                </div>
+                <div class="breakdown-item">
+                    <div class="breakdown-val" id="bd_p2">0</div>
+                    <div>Part II</div>
+                </div>
+                <div class="breakdown-item">
+                    <div class="breakdown-val" id="bd_p3">0</div>
+                    <div>Part III</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div><!-- end #rating-sheet -->
+
+<script>
+    // ── Part III: enable only the selected scenario's score input ──
+    function onP3Change() {
+        // Reset all three p3 scores and disable
+        [1,2,3].forEach(i => {
+            const inp = document.getElementById('p3_score_' + i);
+            inp.value = 0;
+            inp.disabled = true;
+        });
+        // Enable the selected one
+        const sel = document.querySelector('input[name="p3_scenario"]:checked');
+        if (sel) {
+            const idx = sel.id.replace('p3_sel_', '');
+            document.getElementById('p3_score_' + idx).disabled = false;
+        }
+        calcTotal();
+    }
+
+    // ── Score Validation & Calculation ──
+    function validate(input) {
+        const max = parseInt(input.dataset.max) || parseInt(input.max) || 100;
+        let val = parseFloat(input.value);
+        if (isNaN(val) || val < 0) val = 0;
+        if (val > max) val = max;
+        input.value = Math.round(val);
+        calcTotal();
+    }
+
+    function calcTotal() {
+        // Part I scores
+        const p1 = sumBySelector('.p-score[id^="p1_score"]');
+        // Part II scores
+        const p2 = sumBySelector('.p-score[id^="p2_score"]');
+        // Part III: only the enabled (selected) score counts
+        const p3 = sumBySelector('.p-score[id^="p3_score"]:not([disabled])');
+        const total = p1 + p2 + p3;
+
+        // Update subtotals
+        document.getElementById('p1_total').textContent = p1;
+        document.getElementById('p2_total').textContent = p2;
+        document.getElementById('p3_total').textContent = p3;
+
+        // Update breakdown
+        document.getElementById('bd_p1').textContent = p1;
+        document.getElementById('bd_p2').textContent = p2;
+        document.getElementById('bd_p3').textContent = p3;
+
+        // Update total display
+        const display = document.getElementById('total_display');
+        display.textContent = total;
+
+        if (total >= 80) {
+            display.style.color = '#2ecc71';
+            document.getElementById('res_passed').checked = true;
+        } else if (total >= 70) {
+            display.style.color = '#f39c12';
+            document.getElementById('res_partial').checked = true;
+        } else {
+            display.style.color = '#e74c3c';
+            document.getElementById('res_fail').checked = true;
+        }
+    }
+
+    function sumBySelector(selector) {
+        let sum = 0;
+        document.querySelectorAll(selector).forEach(el => {
+            sum += parseInt(el.value) || 0;
+        });
+        return sum;
+    }
+
+    // ── Toast ──
+    function showToast(msg, duration = 2200) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), duration);
+    }
+
+    // ── PDF Export ──
+    function exportPDF() {
+        showToast('🖨️ 開啟列印對話框，選擇「儲存為 PDF」即可匯出');
+        setTimeout(() => window.print(), 400);
+    }
+
+    // ── Form Data Helpers ──
+    function getFormData() {
+        const data = {};
+        document.querySelectorAll('input, textarea').forEach(el => {
+            if (el.type === 'radio') {
+                if (el.checked) data[el.name] = el.value;
+            } else if (el.id) {
+                data[el.id] = el.value;
+            }
+        });
+        return data;
+    }
+
+    function setFormData(data) {
+        if (!data) return;
+        Object.keys(data).forEach(key => {
+            const el = document.getElementById(key);
+            if (el) {
+                el.value = data[key];
+            } else {
+                const radio = document.querySelector(`input[type="radio"][name="${key}"][value="${data[key]}"]`);
+                if (radio) radio.checked = true;
+            }
+        });
+        // Restore Part III enabled state after loading radio
+        onP3Change();
+        // Re-apply score values for p3 after enabling
+        [1,2,3].forEach(i => {
+            const key = 'p3_score_' + i;
+            if (data[key] !== undefined) {
+                const el = document.getElementById(key);
+                if (el && !el.disabled) el.value = data[key];
+            }
+        });
+        calcTotal();
+    }
+
+    // ── Save / Load (localStorage) ──
+    const STORAGE_KEY = 'vStarlux_A350_v2_Draft';
+
+    function saveData() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(getFormData()));
+            showToast('💾 草稿已儲存至瀏覽器！');
+        } catch(e) {
+            showToast('❌ 儲存失敗，請嘗試匯出 JSON');
+        }
+    }
+
+    // ── Export JSON ──
+    function exportDataJSON() {
+        const data = getFormData();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const pilot = data.callsign || 'Pilot';
+        const date = data.check_date || new Date().toISOString().slice(0,10);
+        a.href = url;
+        a.download = `vStarlux_A350_${pilot}_${date}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('📤 JSON 已匯出！');
+    }
+
+    // ── Import JSON ──
+    function importDataJSON() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    setFormData(data);
+                    showToast('📥 資料匯入成功！');
+                } catch (err) {
+                    showToast('❌ 無效的 JSON 檔案');
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+    // ── Reset ──
+    function resetData() {
+        if (confirm('確定要重置所有內容嗎？\n所有未儲存的資料將遺失。')) {
+            try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+            location.reload();
+        }
+    }
+
+    // ── Auto-load on start ──
+    window.addEventListener('DOMContentLoaded', () => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                setFormData(JSON.parse(saved));
+                showToast('📋 已載入上次草稿');
+            }
+        } catch(e) {
+            // localStorage not available, silently continue
+        }
+    });
+</script>
+</body>
+</html>

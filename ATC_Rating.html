@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vSTARLUX ATC Training Rating System</title>
+    <!-- 引入 PDF 生成庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --starlux-gold: #917b50;
+            --starlux-gold-light: #b5a382;
+            --starlux-grey: #3c3c3c;
+            --starlux-light: #f4f1ee;
+            --starlux-dark: #1a1a1a;
+            --pass-green: #27ae60;
+            --fail-red: #d63031;
+        }
+
+        body {
+            font-family: 'Segoe UI', "Microsoft JhengHei", sans-serif;
+            background-color: #d1d1d1;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 頂部固定控制列 */
+        .controls {
+            margin-bottom: 20px;
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 13px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-save { background-color: var(--starlux-grey); color: white; }
+        .btn-pdf { background-color: var(--starlux-gold); color: white; }
+        .btn-export { background-color: #555; color: white; }
+        .btn-reset { background-color: #eee; color: #333; }
+        .btn-reset:hover { background-color: var(--fail-red); color: white; }
+
+        button:hover { transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+
+        /* A4 紙張樣式 */
+        #rating-sheet {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            padding: 15mm 18mm;
+            box-shadow: 0 0 20px rgba(0,0,0,0.15);
+            box-sizing: border-box;
+            position: relative;
+            color: var(--starlux-dark);
+        }
+
+        .header {
+            border-bottom: 3px solid var(--starlux-gold);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .main-logo {
+            width: 250px; 
+            height: auto;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: var(--starlux-grey);
+            font-size: 22px;
+            letter-spacing: 1px;
+            font-weight: 800;
+        }
+
+        .header-right {
+            text-align: right;
+            color: var(--starlux-gold);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        /* 學生資訊欄 */
+        .student-info {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 0.8fr;
+            gap: 15px;
+            margin-bottom: 25px;
+            background: var(--starlux-light);
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .input-group label {
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--starlux-gold);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        input[type="text"], input[type="date"] {
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid #bbb;
+            background: transparent;
+            padding: 5px 0;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input:focus { border-bottom-color: var(--starlux-gold); }
+
+        /* 表格樣式 */
+        section { margin-bottom: 20px; }
+
+        .section-title {
+            background-color: var(--starlux-grey);
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            border-radius: 2px;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { 
+            background-color: #f9f9f9; 
+            color: var(--starlux-gold); 
+            font-size: 12px; 
+            padding: 10px; 
+            text-align: left;
+            border-bottom: 2px solid #eee;
+        }
+        td { padding: 12px 10px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+
+        .desc-text { font-size: 11px; color: #666; display: block; margin-top: 2px; }
+
+        .score-input {
+            width: 50px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            color: var(--starlux-gold);
+        }
+
+        /* 評語與結果 */
+        .remark-area {
+            width: 100%;
+            height: 90px;
+            border: 1px solid #eee;
+            background-color: #fafafa;
+            padding: 10px;
+            box-sizing: border-box;
+            font-family: inherit;
+            resize: none;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        .result-box {
+            border: 2px solid var(--starlux-gold);
+            padding: 15px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .result-options { display: flex; justify-content: space-around; }
+
+        .total-score-box {
+            text-align: center;
+            background: var(--starlux-grey);
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .total-score-display {
+            font-size: 48px;
+            font-weight: 800;
+            line-height: 1;
+            margin: 5px 0;
+        }
+
+        .signature-line {
+            margin-top: 15px;
+            border-bottom: 1px solid #333;
+            width: 100%;
+            height: 30px;
+        }
+
+        @media print {
+            .controls { display: none; }
+            body { background: white; padding: 0; }
+            #rating-sheet { box-shadow: none; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <button class="btn-save" onclick="saveData()">💾 儲存草稿</button>
+        <button class="btn-export" onclick="exportDataJSON()">📤 匯出資料檔案</button>
+        <button class="btn-export" onclick="importDataJSON()">📥 匯入資料檔案</button>
+        <button class="btn-pdf" onclick="exportPDF()">📄 下載 PDF 考核表</button>
+        <button class="btn-reset" onclick="resetData()">🔄 重置清空</button>
+    </div>
+
+    <div id="rating-sheet">
+        <div class="header">
+            <div class="header-left">
+                <!-- 修改處：使用您的 logo.png -->
+                <img src="logo.png" alt="Virtual STARLUX Logo" class="main-logo">
+                <h1>ATC TRAINING FINAL RATING</h1>
+            </div>
+            <div class="header-right">
+                E-DOCUMENT: TRA-ATC-01<br>
+                TRAINING DIVISION<br>
+                VIRTUAL STARLUX AIRLINES
+            </div>
+        </div>
+
+        <div class="student-info">
+            <div class="input-group">
+                <label>STUDENT NAME / 學生姓名</label>
+                <input type="text" id="name" placeholder="Full Name">
+            </div>
+            <div class="input-group">
+                <label>CALLSIGN / 呼號代碼</label>
+                <input type="text" id="callsign" placeholder="STARWALKER XXX">
+            </div>
+            <div class="input-group">
+                <label>DATE / 考核日期</label>
+                <input type="date" id="date">
+            </div>
+        </div>
+
+        <!-- PART I -->
+        <section>
+            <div class="section-title">
+                <span>PART I: COMMUNICATIONS & PHONETICS 通訊與口語</span>
+                <span>50%</span>
+            </div>
+            <table>
+                <tr>
+                    <th width="35%">TASK / 考核項目</th>
+                    <th width="45%">DESCRIPTION / 描述</th>
+                    <th width="20%">SCORE (Max)</th>
+                </tr>
+                <tr>
+                    <td><b>Phonetics & Numbers</b></td>
+                    <td><span class="desc-text">標準字母法與數字準確度 (Ch.3)</span></td>
+                    <td><input type="number" class="score-input p1-score" max="20" value="0" oninput="validateAndCalc(this, 20)"> / 20</td>
+                </tr>
+                <tr>
+                    <td><b>Readback Accuracy</b></td>
+                    <td><span class="desc-text">許可複誦精確度 (Ch.11) - 抄收紀錄</span></td>
+                    <td><input type="number" class="score-input p1-score" max="20" value="0" oninput="validateAndCalc(this, 20)"> / 20</td>
+                </tr>
+                <tr>
+                    <td><b>Radio Discipline</b></td>
+                    <td><span class="desc-text">通話簡潔度 (Ch.4) - 無贅詞、專業形象</span></td>
+                    <td><input type="number" class="score-input p1-score" max="10" value="0" oninput="validateAndCalc(this, 10)"> / 10</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- PART II -->
+        <section>
+            <div class="section-title">
+                <span>PART II: PROCEDURES & SECTORS 作業程序</span>
+                <span>30%</span>
+            </div>
+            <table>
+                <tr>
+                    <th width="35%">TASK / 考核項目</th>
+                    <th width="45%">DESCRIPTION / 描述</th>
+                    <th width="20%">SCORE (Max)</th>
+                </tr>
+                <tr>
+                    <td><b>Sector Handover</b></td>
+                    <td><span class="desc-text">席位移交邏輯 (Ch.13) - 順序正確性</span></td>
+                    <td><input type="number" class="score-input p2-score" max="15" value="0" oninput="validateAndCalc(this, 15)"> / 15</td>
+                </tr>
+                <tr>
+                    <td><b>Navigation / Charting</b></td>
+                    <td><span class="desc-text">航路理解 (Ch.12) - SID/STAR 銜接理解</span></td>
+                    <td><input type="number" class="score-input p2-score" max="15" value="0" oninput="validateAndCalc(this, 15)"> / 15</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- PART III -->
+        <section>
+            <div class="section-title">
+                <span>PART III: MISSIONS & EMERGENCY 任務與應變</span>
+                <span>20%</span>
+            </div>
+            <table>
+                <tr>
+                    <th width="35%">TASK / 考核項目</th>
+                    <th width="45%">DESCRIPTION / 描述</th>
+                    <th width="20%">SCORE (Max)</th>
+                </tr>
+                <tr>
+                    <td><b>Emergency Response</b></td>
+                    <td><span class="desc-text">緊急應變 (Ch.15) - Mayday/NITS 格式</span></td>
+                    <td><input type="number" class="score-input p3-score" max="20" value="0" oninput="validateAndCalc(this, 20)"> / 20</td>
+                </tr>
+            </table>
+        </section>
+
+        <section>
+            <label style="font-weight: bold; color: var(--starlux-gold); font-size: 13px;">INSTRUCTOR REMARKS / 教官評語</label>
+            <textarea id="remarks" class="remark-area" placeholder="Write final feedback..."></textarea>
+        </section>
+
+        <div class="footer-grid">
+            <div class="result-box">
+                <div class="result-options">
+                    <label><input type="radio" name="result" value="fail"> ❌ FAIL</label>
+                    <label><input type="radio" name="result" value="partial"> ⚠️ PARTIAL</label>
+                    <label><input type="radio" name="result" value="passed"> ✅ PASSED</label>
+                </div>
+                <div style="margin-top: 10px;">
+                    <label style="font-size: 10px; color: var(--starlux-gold); font-weight: bold;">INSTRUCTOR SIGNATURE</label>
+                    <div class="signature-line">
+                        <input type="text" id="instructor" style="border:none; width:100%; height:100%; background:transparent; font-family: cursive; font-size: 18px;" placeholder="Sign here...">
+                    </div>
+                </div>
+            </div>
+            <div class="total-score-box">
+                <div style="font-size: 11px; font-weight: bold; letter-spacing: 1px;">OVERALL SCORE</div>
+                <div class="total-score-display" id="total-display">0</div>
+                <div style="font-size: 10px; font-weight: bold;">MINIMUM REQ: 80</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 驗證輸入值不可超過最大值，並觸發計算
+        function validateAndCalc(input, max) {
+            if (input.value > max) input.value = max;
+            if (input.value < 0) input.value = 0;
+            calcTotal();
+        }
+
+        // 自動計算總分並連動結果
+        function calcTotal() {
+            let total = 0;
+            document.querySelectorAll('.score-input').forEach(input => {
+                total += parseInt(input.value) || 0;
+            });
+            
+            const display = document.getElementById('total-display');
+            display.innerText = total;
+
+            // 自動根據分數切換顏色與勾選結果
+            const radios = document.getElementsByName('result');
+            if (total >= 80) {
+                display.style.color = "#27ae60"; // 綠色
+                radios[2].checked = true; // Passed
+            } else if (total >= 70) {
+                display.style.color = "#f1c40f"; // 黃色
+                radios[1].checked = true; // Partial
+            } else {
+                display.style.color = "#e74c3c"; // 紅色
+                radios[0].checked = true; // Fail
+            }
+        }
+
+        // 下載 PDF
+        function exportPDF() {
+            const element = document.getElementById('rating-sheet');
+            const studentId = document.getElementById('callsign').value || 'Unknown';
+            const opt = {
+                margin: 0,
+                filename: `vStarlux_ATC_Rating_${studentId}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 3, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        // 獲取當前頁面資料物件
+        function getFormData() {
+            return {
+                name: document.getElementById('name').value,
+                callsign: document.getElementById('callsign').value,
+                date: document.getElementById('date').value,
+                scores: Array.from(document.querySelectorAll('.score-input')).map(i => i.value),
+                remarks: document.getElementById('remarks').value,
+                instructor: document.getElementById('instructor').value,
+                result: document.querySelector('input[name="result"]:checked')?.value
+            };
+        }
+
+        // 填入資料到頁面
+        function setFormData(data) {
+            document.getElementById('name').value = data.name || '';
+            document.getElementById('callsign').value = data.callsign || '';
+            document.getElementById('date').value = data.date || '';
+            document.getElementById('remarks').value = data.remarks || '';
+            document.getElementById('instructor').value = data.instructor || '';
+            const scores = document.querySelectorAll('.score-input');
+            if(data.scores) data.scores.forEach((val, idx) => { if(scores[idx]) scores[idx].value = val; });
+            if(data.result) {
+                const radio = document.querySelector(`input[name="result"][value="${data.result}"]`);
+                if(radio) radio.checked = true;
+            }
+            calcTotal();
+        }
+
+        // 儲存草稿
+        function saveData() {
+            localStorage.setItem('vStarlux_ATC_Draft', JSON.stringify(getFormData()));
+            alert('草稿已儲存至瀏覽器！');
+        }
+
+        // 匯出 JSON 檔案 (供教官存檔用)
+        function exportDataJSON() {
+            const data = getFormData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `ATC_Record_${data.callsign || 'unnamed'}.json`;
+            a.click();
+        }
+
+        // 匯入 JSON 檔案
+        function importDataJSON() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = event => {
+                    setFormData(JSON.parse(event.target.result));
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        window.onload = function() {
+            const saved = localStorage.getItem('vStarlux_ATC_Draft');
+            if (saved) setFormData(JSON.parse(saved));
+        }
+
+        function resetData() {
+            if(confirm("確定要重置所有內容嗎？")) {
+                localStorage.removeItem('vStarlux_ATC_Draft');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
