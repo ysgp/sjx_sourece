@@ -27,7 +27,7 @@
         .container {
             text-align: center;
             width: 90%;
-            max-width: 800px;
+            max-width: 1000px; /* 稍微放寬以容納三個卡片 */
         }
 
         .logo {
@@ -96,7 +96,6 @@
             letter-spacing: 1px;
         }
 
-        /* 裝飾性線條 */
         .divider {
             width: 50px;
             height: 2px;
@@ -108,13 +107,11 @@
 <body>
 
     <div class="container">
-        <!-- 如果您有 logo.png，它會顯示在這裡 -->
         <img src="logo.png" alt="vSTARLUX Logo" class="logo" onerror="this.style.display='none'">
         
         <h1>Training Management System</h1>
         
         <div class="menu-grid">
-            <!-- 導向 ATC 考核表 -->
             <a href="ATC_Rating.html" class="nav-card">
                 <div class="icon">📡</div>
                 <h2>ATC RATING</h2>
@@ -122,7 +119,13 @@
                 <p>飛航管制員訓練考核系統</p>
             </a>
 
-            <!-- 導向 A350 考核表 -->
+            <a href="a321&a339_type_rating.html" class="nav-card">
+                <div class="icon">🛫</div>
+                <h2>A321 / A339 RATING</h2>
+                <div class="divider"></div>
+                <p>跨境航線挑戰與本場起落技術考核</p>
+            </a>
+
             <a href="a350_type_rating.html" class="nav-card">
                 <div class="icon">✈️</div>
                 <h2>A350 TYPE RATING</h2>
